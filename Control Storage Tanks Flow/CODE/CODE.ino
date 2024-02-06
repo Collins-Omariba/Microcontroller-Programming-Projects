@@ -1,36 +1,44 @@
+// Include necessary libraries
 #include <Keypad.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-const int InletPumpPin = 11; // Inlet pump  pin
-const int OutletPumpPin = 13; // Outlet pump  pin
+// Define pin numbers for various components
+const int InletPumpPin = 11; // Inlet pump pin
+const int OutletPumpPin = 13; // Outlet pump pin
 const int buzzerPin = 12; // Buzzer pin
 const int potPins[] = {A0, A1, A2}; // Potentiometer pins for the three tanks
 const int emergencyButtonPin = 3; // Emergency button pin
 
+// Define keypad layout
 const byte ROWS = 4; // four rows
 const byte COLS = 3; // three columns
-char keys[ROWS][COLS] = {  // keypad
+char keys[ROWS][COLS] = {  // keypad layout
   {'1','2','3'},
   {'4','5','6'},
   {'7','8','9'},
   {'*','0','#'}
 };
 
+// Define pin numbers for keypad rows and columns
 byte rowPins[ROWS] = {6, 5, 4, 2}; // connect to the row pinouts of the keypad
 byte colPins[COLS] = {9, 8, 7};    // connect to the column pinouts of the keypad
 
+// Define flags for emergency stop and pump running status
 volatile bool emergencyStop = false; // Emergency stop flag
 bool pumpRunning = false; // Flag to track if a pump is running
 
+// Initialize keypad
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
+// Setup function to initialize serial communication, pin modes and interrupt
 void setup() {
   Serial.begin(9600);
   pinMode(InletPumpPin, OUTPUT);
   pinMode(OutletPumpPin, OUTPUT);
   pinMode(buzzerPin, OUTPUT);
 
+  // Set potentiometer pins as input
   for (int i = 0; i < 3; i++) {
     pinMode(potPins[i], INPUT);
   }
@@ -40,6 +48,8 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(emergencyButtonPin), emergencyStopInterrupt, RISING);
 }
 
+
+// Main loop function to handle keypad input and control pumps
 void loop() {
   if (!emergencyStop) { // Proceed only if emergency is not triggered
     char key = keypad.getKey();
@@ -49,8 +59,6 @@ void loop() {
       handleKey(key);
     }
 
-    bool allTanksNotFull = true; // Flag to track if all tanks are not full
-
     // Read and process potentiometer values
     for (int i = 0; i < 3; i++) {
       int potValue = analogRead(potPins[i]);
@@ -58,40 +66,28 @@ void loop() {
       // Map the potentiometer value to a range of 0 to 5
       float mappedValue = map(potValue, 0, 1023, 0, 5);
 
-      // Check if the tank is full
-      if (mappedValue >= 5.0) {
-        allTanksNotFull = false;
-        break; // No need to check other tanks if one is full
-      }
-    }
 
-    // If all tanks are not full, allow pump operation
-    if (allTanksNotFull) {
-      for (int i = 0; i < 3; i++) {
-        if (key == keys[i][0]) {
-          if (keypad.getState() == HOLD && keypad.isPressed('*')) {
-            Serial.print("Start filling pump for Tank ");
-            Serial.println(key);
-            startPump(InletPumpPin);
-            digitalWrite(OutletPumpPin, LOW); // Turn off outlet pump
-          } else if (keypad.getState() == HOLD && keypad.isPressed('#')) {
-            Serial.print("Start emptying pump for Tank ");
-            Serial.println(key);
-            startPump(OutletPumpPin);
-            digitalWrite(InletPumpPin, LOW); // Turn off inlet pump
-          }
-          break; // No need to check other tanks
+      // If tank is not full, allow pump operation
+      if (key == keys[i][0]) {
+        if (keypad.getState() == HOLD && keypad.isPressed('*')) {
+          Serial.print("Start filling pump for Tank ");
+          Serial.println(key);
+          startPump(InletPumpPin);
+          digitalWrite(OutletPumpPin, LOW); // Turn off outlet pump
+        } else if (keypad.getState() == HOLD && keypad.isPressed('#')) {
+          Serial.print("Start emptying pump for Tank ");
+          Serial.println(key);
+          startPump(OutletPumpPin);
+          digitalWrite(InletPumpPin, LOW); // Turn off inlet pump
         }
       }
-    } else {
-      // If any tank is full, turn off all pumps
-      turnOffPump();
     }
   }
 }
 
 
 
+// Function to handle keypad input
 void handleKey(char key) {
   static char selectedTank = '\0'; // Variable to store the selected tank number
 
@@ -141,20 +137,21 @@ void handleKey(char key) {
   }
 }
 
-
+// Function to start a pump
 void startPump(int pumpPin) {
   turnOffPump(); // Turn off all pumps before starting a new one
   digitalWrite(pumpPin, HIGH);
   pumpRunning = true;
 }
 
+// Function to turn off all pumps
 void turnOffPump() {
   digitalWrite(InletPumpPin, LOW);
   digitalWrite(OutletPumpPin, LOW);
   pumpRunning = false;
 }
 
-
+// Interrupt service routine for emergency stop
 void emergencyStopInterrupt() {
   emergencyStop = true;
   turnOffPump(); // Turn off all pumps when emergency is triggered
