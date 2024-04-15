@@ -2,9 +2,7 @@
 ; ESPRESSO.asm
 ;
 ; Created: 3/27/2024 3:11:29 PM
-; Author : ONAMI OMARIBA COLLINS
-; REG NO: ENM221-0062/2020
-;
+
 
 ; Initialize registers, ports, and peripherals
 .include "m328Pdef.inc"
