@@ -1,5 +1,4 @@
-// REG NO: ENM221-0062/2020
-// NAME: ONAMI OMARIBA COLLINS
+
 
 // Include necessary libraries for LCD display, SPI and I2C communication
 #include <LiquidCrystal_I2C.h>

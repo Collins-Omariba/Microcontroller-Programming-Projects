@@ -1,5 +1,3 @@
-// REG NO: ENM221-0062/2020
-// NAME: ONAMI OMARIBA COLLINS
 #include <AutoPID.h>
 
 // Pins
